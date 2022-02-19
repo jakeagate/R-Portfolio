@@ -1,6 +1,4 @@
-# Assignment 3
-# Data Mining
-# Jake Agate
+# Decision Tree Project
 
 install.packages("magrittr")
 install.packages("dplyr")
