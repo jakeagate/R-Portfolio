@@ -1,6 +1,4 @@
-# Assignment 4 (MPG)
-# Data Mining
-# Jake Agate
+# Neural Network Project
 
 # Install and load packages:
 install.packages("magrittr")
