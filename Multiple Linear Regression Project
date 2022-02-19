@@ -1,6 +1,4 @@
-# Assignment 6 - Life Expectancy
-# Data Mining 
-# Jake Agate
+# Multiple Linear Regression Project
 
 # Install packages:
 install.packages("dplyr")
