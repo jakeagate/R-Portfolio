@@ -1,6 +1,4 @@
-# Assignment 1
-# Data Mining for Data Science
-# Jake Agate
+# k-NN Modeling Project
 
 library(magrittr)
 library(dplyr)
@@ -51,8 +49,6 @@ normalize <- function(x) {
 cars_n <- as.data.frame(lapply(cars[c(9, 10, 11)], normalize))
 summary(cars_n[c("Wheelbase", "Width", "Length")])
 
-# Add Vehicle_Type factor variable to new cars df:
-#cars_n$Vehicle_Type <- cars$Vehicle_type
 
 # Create training and test data:
 cars_train <- cars_n[1:137, ]
