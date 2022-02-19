@@ -1,0 +1,184 @@
+# Assignment 2
+# Jake Agate
+
+# Necessary Packages:
+library(ggplot2)
+library(rattle)
+library(magrittr)
+library(dplyr)
+
+births <- read.csv("births.csv")
+
+names(births) %<>% normVarNames()
+
+births %<>% 
+  mutate(weight_lbs = weight * 0.00220462) 
+
+str(births)
+
+# Scatterplot 1:
+
+births %>% 
+  ggplot(aes(mothers_age, weight_lbs, col = gender)) +
+  geom_point() + geom_jitter() +
+  scale_y_continuous(breaks=c(1:11)) +
+  geom_hline(yintercept = mean(births$weight_lbs), col = "blue") +
+  labs(
+    x = "Mother's Age",
+    y = "Child's Weight (lbs)",
+    title = "Scatterplot of Mother's Age vs. Child's Weight",
+    subtitle = "Data provided by the US Department of Health and Human Services and the National Center for Health Statistics",
+    color = "Gender") +
+  theme(plot.title = element_text(size = 14, face = "bold")) +
+  theme(legend.position = "bottom")
+  
+
+
+# Facetwrapped Scatterplot 2:
+
+births %>% 
+  ggplot(aes(gestation, weight_lbs, col = smoker)) +
+  geom_point() +
+  facet_wrap(~smoker) +
+  scale_y_continuous(breaks=c(1:11)) +
+  labs(
+    x = "Gestation (Weeks)",
+    y = "Child's Weight (lbs)",
+    title = "Scatterplot of Gestation vs. Child's Weight for Smokers and Non-Smokers",
+    subtitle = "Data provided by the US Department of Health and Human Services and the National Center for Health Statistics",
+    col = "Smoker") +
+  geom_smooth(method = "lm", se = FALSE) +
+  theme(plot.title = element_text(size = 14, face = "bold"))
+
+
+# Dodged Bar Chart 3:
+
+births %>% 
+  filter(smoker == "Yes") -> yes_smoker
+
+births %>% 
+  filter(smoker == "No") -> no_smoker
+
+births %>% 
+  ggplot(aes(gestation, weight_lbs, fill = smoker)) +
+  geom_bar(stat = "identity", position = "dodge", width = 0.5) +
+  scale_y_continuous(breaks=c(1:11)) +
+  labs(
+    x = "Gestation (Weeks)",
+    y = "Child's Weight (lbs)",
+    title = "Bar Plot of Gestation vs. Child's Weight for Smokers and Non-Smokers",
+    subtitle = "Data provided by the US Department of Health and Human Services and the National Center for Health Statistics",
+    fill = "Smoker") +
+  geom_hline(yintercept = no_smoker$weight_lbs %>% mean(), col = "salmon") +
+  geom_hline(yintercept = yes_smoker$weight_lbs %>% mean(), col = "turquoise") +
+  theme(plot.title = element_text(size = 14, face = "bold"))
+
+
+
+# Plot 4:
+
+births %>% 
+  ggplot(aes(x = gestation, y = weight_lbs, col = smoker)) +
+  geom_point() +
+  scale_y_continuous(breaks=c(1:11)) +
+  facet_grid(~mothers_age) + 
+  labs(
+    title = "Scatterplot of Gestation vs. Child's Weight",
+    subtitle = "Data provided by the US Department of Health and Human Services and the National Center for Health Statistics",
+    x = "Gestation (weeks)",
+    y = "Child's Weight (lbs)",
+    col = "Smoker") +
+  theme(plot.title = element_text(size = 14, face = "bold"))
+
+
+
+# Plot 5:
+
+births %>% 
+  ggplot(aes(x = mothers_age, y = weight_lbs, fill = smoker)) +
+  geom_boxplot() +
+  facet_wrap(~gender) +
+  scale_y_continuous(breaks=c(1:11)) +
+  labs(
+    title = "Boxplot of Mother's Age vs. Child's Weight",
+    subtitle = "Data provided by the US Department of Health and Human Services and the National Center for Health Statistics",
+    x = "Mother's Age (years)",
+    y = "Child's Weight (lbs)",
+    fill = "Smoker") +
+  theme(legend.position = "bottom") +
+  theme(plot.title = element_text(size = 14, face = "bold"))
+
+
+# Scatter Plot 6:
+
+births %>% 
+  ggplot(aes(x = gestation, y = weight_lbs, col = smoker)) + 
+  geom_point(aes(shape = gender)) + 
+  labs(
+    title = "Scatterplot of Gestation Duration vs. Child's Weight",
+    subtitle = "Data provided by the US Department of Health and Human Services and the National Center for Health Statistics",
+    x = "Gestation (weeks)",
+    y = "Child's Weight (lbs)",
+    col = "Smoker",
+    shape = "Gender") +
+  geom_smooth() +
+  scale_y_continuous(breaks=c(1:11)) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 14, face = "bold")) +
+  theme(legend.position = "bottom")
+  
+
+# Box Plot 7:
+
+births %>% 
+  ggplot(aes(x = gender, y = weight_lbs, fill = gender)) +
+  geom_boxplot() +
+  facet_wrap(~smoker) +
+  scale_y_continuous(breaks=c(1:11)) +
+  labs(
+    title = "Boxplot of Child's Gender vs. Weight",
+    subtitle = "Data provided by the US Department of Health and Human Services and the National Center for Health Statistics",
+    x = "Gender",
+    y = "Child's Weight (lbs)",
+    fill = "Gender") +
+  theme(plot.title = element_text(size = 14, face = "bold"))
+
+
+
+# Scatterplot 8:
+
+births %>% 
+  ggplot(aes(x = number, y = weight_lbs)) +
+  geom_point(col = "blue") +
+  scale_y_continuous(breaks=c(1:11)) + 
+  scale_x_continuous(breaks = c(1:3)) +
+  labs(
+    title = "Scatterplot of Number of Births vs. Child's Weight",
+    subtitle = "Data provided by the US Department of Health and Human Services and the National Center for Health Statistics",
+    x = "Number of Births", 
+    y = "Child's Weight (lbs)") +
+  geom_hline(yintercept = births$weight_lbs %>% mean(), col = "red") +
+  theme_bw() +
+  theme(plot.title = element_text(size = 14, face = "bold"))
+  
+births$weight_lbs %>% mean()
+
+# Scatterplot 9:
+
+births %>% 
+  ggplot(aes(x = number, y = gestation, col = gender)) +
+  geom_point() + 
+  labs(
+    title = "Scatterplot of Number of Births vs. Duration of Gestation",
+    subtitle = "Data provided by the US Department of Health and Human Services and the National Center for Health Statistics",
+    x = "Number of Births",
+    y = "Gestation (weeks)",
+    col = "Gender") +
+  theme_minimal() +
+  geom_hline(yintercept = births$gestation %>% mean(), col = "green") +
+  theme(plot.title = element_text(size = 14, face = "bold"))
+
+
+
+
+
