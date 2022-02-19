@@ -1,6 +1,4 @@
-# Assignment 4
-# Statistics for Data Science
-# Jake Agate
+# Linear Regression Project
 
 # Install / Load Packages:
 install.packages("magrittr")
