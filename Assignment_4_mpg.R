@@ -1,0 +1,127 @@
+# Assignment 4 (MPG)
+# Data Mining
+# Jake Agate
+
+# Install and load packages:
+install.packages("magrittr")
+install.packages("dplyr")
+install.packages("rattle")
+install.packages("zoo")
+install.packages("neuralnet")
+
+library(magrittr)
+library(dplyr)
+library(rattle)
+library(zoo)
+library(neuralnet)
+
+# Read dataset into R:
+mpg_df <- read.csv("auto_mpg.csv")
+View(mpg)
+str(mpg_df)
+
+# Question: Can we predict the mpg of a vehicle given variables such as: 
+#     cylinders, displacement, horsepower, weight, acceleration, and model year? 
+#     Is this achievable with a neural network model?
+
+# Clean dataset by removing unnecessary variables:
+mpg_df <- subset(mpg_df, select = -c(origin, car.name))
+str(mpg_df)
+
+# Convert non numeric variables into numeric class:
+mpg_df$cylinders <- as.numeric(mpg_df$cylinders)
+mpg_df$horsepower <- as.numeric(mpg_df$horsepower) # 6 NA's introduced
+mpg_df$weight <- as.numeric(mpg_df$weight)
+mpg_df$model.year <- as.numeric(mpg_df$model.year)
+
+str(mpg_df)
+
+# Check for NA's
+is.na(mpg_df) %>% sum() # 6 present
+
+# Replace NA's in dataset with average of their respective column:
+mpg_no_na <- replace(mpg_df, T, lapply(mpg_df, na.aggregate))
+is.na(mpg_no_na) %>% sum() # Confirm no NA's
+
+mpg_df <- mpg_no_na # Assign df without NA's to our original df
+is.na(mpg_df) %>% sum() # Confirm again that this is without NA's
+
+# Create normalize function:
+normalize <- function(x) { 
+  return((x - min(x)) / (max(x) - min(x)))
+}
+
+# Apply normalization to entire data frame:
+mpg_norm <- as.data.frame(lapply(mpg_df, normalize))
+
+# Check to see if normalization worked:
+summary(mpg_df$mpg) # Original data
+summary(mpg_norm$mpg) # Normalized data
+
+# Create training and test data:
+dim(mpg_norm) # 398 rows
+
+mpg_train <- mpg_norm[1:318, ] # 80% of data
+mpg_test <- mpg_norm[318:398, ] # 20% of data
+
+
+
+# Create neural net model without hidden layer(s):
+
+set.seed(123)
+mpg_model <- neuralnet(formula = mpg ~ cylinders + displacement + horsepower + 
+                       weight + acceleration + model.year, data = mpg_train)
+
+plot(mpg_model) # Error: 0.578
+
+# Measure accuracy of model without hidden layer(s):
+model_results <- compute(mpg_model, mpg_test[1:7])
+predicted_mpg <- model_results$net.result
+cor(predicted_mpg, mpg_test$mpg) # 70% Correlation
+
+
+
+# New model with hidden nodes:
+
+set.seed(123)
+mpg_model_hidden <- neuralnet(formula = mpg ~ cylinders + displacement + horsepower + 
+                         weight + acceleration + model.year, data = mpg_train, hidden = 2)
+
+plot(mpg_model_hidden) # Error: 0.568
+
+# Measure accuracy of model without hidden layer(s):
+model_results_hidden <- compute(mpg_model_hidden, mpg_test[1:7])
+predicted_mpg <- model_results_hidden$net.result
+cor(predicted_mpg, mpg_test$mpg) # 70.31% Correlation
+
+
+# Hidden Layer Trials:
+# 1 Node: 0.700
+# 2 Nodes: 0.703 ( least layers with highest correlation )
+# 3 Nodes: 0.686
+# 4 Nodes: 0.668
+# 2,1 Nodes: 0.704
+# 3,2 Node: 0.647
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

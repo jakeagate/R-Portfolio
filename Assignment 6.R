@@ -1,0 +1,350 @@
+# Assignment 6 - Life Expectancy
+# Data Mining 
+# Jake Agate
+
+# Install packages:
+install.packages("dplyr")
+install.packages("magrittr")
+install.packages("lattice")
+install.packages("car")
+install.packages("rattle")
+install.packages("gvlma")
+
+library(dplyr)
+library(magrittr)
+library(lattice)
+library(car)
+library(rattle)
+library(gvlma)
+
+# Read in data:
+life <- read.csv("Life Expectancy Data.csv")
+str(life)
+
+# Normalize variable names:
+names(life) %<>% normVarNames()
+str(life)
+
+# Select columns to use in regression:
+life %<>% select(country, life_expectancy, adult_mortality, hepatitis_b, measles, polio, hiv_aids, bmi, year)
+str(life)
+
+# Convert any integer variables to numeric:
+life$adult_mortality <- as.numeric(life$adult_mortality)
+life$hepatitis_b <- as.numeric(life$hepatitis_b)
+life$measles <- as.numeric(life$measles)
+life$polio <- as.numeric(life$polio)
+life$year <- as.numeric(life$year)
+
+str(life)
+
+dim(life) # 2938 observations
+
+
+
+# Filter out data to only one year (2010):
+life_2010 <- filter(life, year == 2010)
+
+dim(life_2010) # 183 observations
+
+# Remove NA's:
+summary(life_2010)
+# hepatitis_b: 15 NA's
+# polio: 1 NA
+# bmi: 2 NA's
+
+life_2010 %<>% na.omit()
+
+summary(life_2010) # No NA's
+
+dim(life_2010) # 167 observations
+
+
+
+# Conduct multiple linear regression:
+life_fit <- lm(life_expectancy ~ adult_mortality + hepatitis_b + measles + polio + hiv_aids + bmi, data = life_2010)
+
+summary(life_fit)
+
+# F - statistic: 55.27
+# Multiple R-squared: 0.6745
+# Adjusted R-squared: 0.6623
+# p-value: 2.2e-16
+
+# t values:
+# --------------------------
+# adult_mortatlity:   -7.107
+# hepatitis_b:        -0.406
+# measles:             0.978
+# polio:               2.985
+# hiv_aids:           -4.242
+# bmi:                 5.141
+
+
+# Regression Coefficient for BMI: 0.1059
+# An increase of one percent increase in BMI is associated with a 0.1059 increase in life_expectancy
+# The coefficient is significantly different from zero at p < 0
+# Measles is not significantly different form zero at p = 0.03081 suggesting that 
+#     life expectancy and measles are not linearly related
+# The predictor variables account for 67% of the variance in life expectancy
+
+confint(life_fit)
+
+# The results suggest that you can be 95% confident that the interval [-1.05, -0.38] contains
+# the true change in life expectancy for a 1 percent change in hiv_aids. Additionally,
+# because the confidence interval for hepatitis_b and measles contain 0, we can conclude
+# that a these diseases are unrelated to life expectancy for this dataset
+
+
+# Plot fit:
+par(mfrow = c(1,1))
+plot(life_fit, labels.id = life$country)
+
+
+############################## Assessing Normality ############################# 
+
+install.packages("car")
+library(car)
+
+# Plot qq-plot:
+qqPlot(life_fit, labels = F, simulate = TRUE, main = "Life Expectancy Q-Q Plot")
+
+# Look into min of qq-plot:
+life[27,] # Albania, life expectancy of 73.5 (high hep b and polio)
+life[31,] # Albania, life expectancy of 73.6 (high hep b and polio)
+
+rstudent(life_fit)
+
+# Function for plotting studentized residuals
+residplot <- function(fit, nbreaks=10) {
+  z <- rstudent(fit)
+  hist(z, breaks=nbreaks, freq=FALSE,
+       xlab="Studentized Residual",
+       main="Distribution of Errors")
+  rug(jitter(z), col="brown")
+  curve(dnorm(x, mean=mean(z), sd=sd(z)),
+        add=TRUE, col="blue", lwd=2)
+  lines(density(z)$x, density(z)$y,
+        col="red", lwd=2, lty=2)
+  legend("topright",
+         legend = c( "Normal Curve", "Kernel Density Curve"),
+         lty=1:2, col=c("blue","red"), cex=.7)
+}
+  
+residplot(life_fit)
+
+# Follows a normal distribution and indicates there is a small outlier at the lower
+# end of the distribution. Possibly the Sierra Leone country
+
+
+
+########################## Dependence of Errors ########################## 
+
+
+durbinWatsonTest(life_fit)
+
+# p-value: 0.622
+# autocorrelation value is positive
+
+crPlots(life_fit)
+
+
+########################## Assessing Homoscedasticity ########################## 
+
+
+
+ncvTest(life_fit)
+# p-value = 0.8119
+
+spreadLevelPlot(life_fit)
+
+
+gvmodel <- gvlma(life_fit)
+summary(gvmodel)
+
+# Assumptions are acceptable for all decisions
+# global p-value = 0.05924
+
+
+
+######################## Evaluating Multi-Collinearity #########################
+
+
+cor(life_2010 %>% select(life_expectancy, adult_mortality, hepatitis_b, measles, polio, hiv_aids, bmi))
+
+# hiv_aids has highest correlation with adult_mortality
+
+
+vif(life_fit)
+sqrt(vif(life_fit)) > 2
+
+# false for all
+# no indication of multicollinearity problem
+
+
+
+################################### Outliers ################################### 
+
+
+outlierTest(life_fit) # 27 was identified to be an outlier
+
+life_2010[27,] # 27 is the country of Burundi
+
+
+#################### Unusual or High Leverage Observations #####################
+
+
+hat.plot <- function(fit){
+  p <- length(coefficients(fit))
+  n <- length(fitted(fit))
+  plot(hatvalues(fit), main = "Index Plot of Hat Values")
+  abline(h = c(2, 3) * p/n, col = "red", lty = 2)
+  identify(1:n, hatvalues(fit), names(hatvalues(fit)))
+}
+
+hat.plot(life_fit)
+
+life_2010[99,]  # Mexico
+life_2010[156,] # Ukraine
+life_2010[111,] # Nigeria
+life_2010[18,]  # Benin
+life_2010[14,]  # Barbados
+life_2010[20,]  # Bolivia
+
+
+filter(life_2010, country == "Mexico")
+filter(life_2010, country == "Ukraine")
+
+
+summary(life_2010)
+
+# Mexico and Ukraine stand out when it come to their predictor values
+
+# Mexico has low measles and bmi but high polio and  hepatitis values 
+# Ukriane has low hepatitis and polio but high adult mortality and bmi 
+
+
+
+
+
+########################### Influential Observations ########################### 
+
+
+
+# Cook's D Plot
+
+cutoff <- 4/(nrow(life_2010) - length(life_fit$coefficients) - 1)
+
+plot(life_fit, which = 4, cook.levels = cutoff, labels.id = life$country)
+abline(h = cutoff, lty = 2, col = "red")
+
+# We can see that Albania, Armenia, and Austria are are influential observations
+
+avPlots(life_fit, ask = F, onepage = T, id.method = 'identify')
+
+# We can see that interestingly bmi and polio have a somewhat linear relatinship
+# with life expectancy. As either of these factors increase so does life expectancy.
+# We can also see the opposite wherein as adult mortality and hiv aids increase, 
+# life expectancy decreases. These make more sense. However, hepatitis b does not
+# seem to have much of a relationship with life expectancy
+
+
+
+################################ Influence Plot ################################ 
+
+
+
+influencePlot(life_fit, mid.method = 'identify', main = 'Influence Plot',
+              sub = "Circle size is proportional to Cook's Distance")
+
+life_2010[156,] # Swaziland
+life_2010[111,] # Mozambique
+life_2010[99,]  # Malawi
+life_2010[27,]  # Burundi
+life_2010[31,]  # Cameroon
+
+# We can see that Swaziland (156) is an outlier as it resides above the studentized
+# residual value of 2. Similar but on the other end of the spectrum are Cameroon (31)
+# and Burundi (27). 
+
+# We can also see that Mozambique (111) as well as Malawi (99) have
+# high leverage. Malwai dramatically emphasizes this but has a hat-value around 0.8.
+
+# Swaziland (156) and Mozambique(111) seem to be the most influential observations
+
+
+
+######################## Options for correcting violations #####################
+
+
+
+install.packages("MASS",dependencies = TRUE, repos = "http://cran.us.r-project.org")
+install.packages("gmodels",dependencies = TRUE, repos = "http://cran.us.r-project.org")
+
+library(MASS)
+
+life_fit1 <- lm(life_expectancy ~ adult_mortality + hepatitis_b + measles + polio 
+                + hiv_aids + bmi, data = life_2010)
+life_fit2 <- lm(life_expectancy ~ adult_mortality + polio + hiv_aids + bmi, 
+                data = life_2010)
+
+AIC(life_fit1, life_fit2)
+
+# Knowing that a lower value is preferred for Akaike Information Criterion (AIC),
+# we can see that our original model including the hepatitis b and measles data
+# creates a better model than without. 
+
+
+
+############################ Stepwise Regression ###############################
+
+
+
+life_fit1 <- lm(life_expectancy ~ adult_mortality + hepatitis_b + measles + polio 
+                + hiv_aids + bmi, data = life_2010)
+
+stepAIC(life_fit1, direction = "backward")
+
+# Removing hepatitis b from the model results in a AIC value
+# of 543.44. Taking out measles also reduces the AIC value, down to 544.26. These
+# are not major progressions in our model but still minor improvements
+
+life_fit3 <- lm(life_expectancy ~ adult_mortality + polio + hiv_aids + bmi, data = life_2010)
+
+summary(life_fit3) # Optimal model based off results of stepwise regression using AIC values
+
+
+
+
+###########################  All subsets regression  ###########################  
+
+
+
+library(leaps)
+
+leaps <- regsubsets(life_expectancy ~ adult_mortality + hepatitis_b + measles + 
+                      polio + hiv_aids + bmi, data = life_2010, nbest = 4)
+
+plot(leaps, scale = "adjr2") 
+
+# adult_mortality, polio, hiv aids, and bmi have an adjusted R-square value of
+# 0.66. This suggests that removing the two predictor variables hepatitis_b and measles
+# results in a better model for our target variable of life_expectancy. This follows the 
+# findings in the stepwise regression results
+
+
+
+###########################  
+
+
+
+subsets(leaps, statistic = "cp", 
+        main = "Cp Plot for All Subsets Regression")
+abline(1, 1, lty = 2, col = "red")
+
+
+
+
+
+
+
